@@ -79,17 +79,20 @@ HRESULT StateMachine::handleEvent(Event* e)
 
 	// Call State::handleEvent()
 	// If event is ignored and the state is sub state, delegate handling event to master state.
-	State* pCurrentState = currentState.get();
 	State* pNextState = nullptr;
 	std::shared_ptr<State> nextState;
 	bool backToMaster = false;
 	HRESULT hr;
-	do {
+	for(State* pCurrentState = currentState.get();
+		pCurrentState && !e->isHandled;
+		pCurrentState = pCurrentState->masterState().get())
+	{
 		LOG4CPLUS_INFO(logger, "Calling " << pCurrentState->toString() << "::handleEvent()");
 		hr = HR_EXPECT_OK(pCurrentState->handleEvent(e, currentState.get(), &pNextState));
 		// Set Event::isHandled.
 		// If state transition occurs, assume that the event is handled even if S_EVENT_IGNORED was returned.
-		e->isHandled = ((hr != S_EVENT_IGNORED) || pNextState);
+		// Setting true by State::handleEvent() is prior to above condition.
+		e->isHandled = e->isHandled ? e->isHandled : ((hr != S_EVENT_IGNORED) || pNextState);
 		if(pNextState) {
 			// Note: Object returned to pNextState might be deleted,
 			//       if nextState goes out of scope before it is set as current state.
@@ -107,12 +110,11 @@ HRESULT StateMachine::handleEvent(Event* e)
 			LOG4CPLUS_INFO(logger, "Calling " << pCurrentState->toString() << "::handleError()");
 			HR_ASSERT_OK(pCurrentState->handleError(e, hr));
 		}
-		if(S_EVENT_IGNORED == hr) {
+		if(!e->isHandled) {
 			LOG4CPLUS_INFO(logger, "Calling " << pCurrentState->toString() << "::handleIgnoredEvent()");
-			HR_ASSERT_OK(hr = pCurrentState->handleIgnoredEvent(e));
+			HR_ASSERT_OK(pCurrentState->handleIgnoredEvent(e));
 		}
-		pCurrentState = pCurrentState->masterState().get();
-	} while(pCurrentState && (S_EVENT_IGNORED == hr));
+	}
 
 	if(SUCCEEDED(hr) && pNextState) {
 		LOG4CPLUS_INFO(logger, "Next state is " << pNextState->toString() << (pNextState->isSubState() ? "(Sub state)" : ""));

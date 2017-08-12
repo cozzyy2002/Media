@@ -14,12 +14,12 @@ public:
 	TestContext(StateMachine* stateMachine) : Context(stateMachine) {}
 };
 
-class StateMacineStateUnitTest : public Test
+class StateMacineUnitTest : public Test
 {
 public:
 	typedef TestStateMachine Testee;
 
-	StateMacineStateUnitTest()
+	StateMacineUnitTest()
 		: context(new TestContext(&testee))
 		, e(new MockEvent(context.get())) {}
 
@@ -37,7 +37,7 @@ public:
 	std::unique_ptr<MockEvent> e;
 };
 
-TEST_F(StateMacineStateUnitTest, no_transition)
+TEST_F(StateMacineUnitTest, no_transition)
 {
 	EXPECT_CALL(*currentState, handleEvent(e.get(), currentState, _))
 		.WillOnce(Return(S_OK));
@@ -51,7 +51,7 @@ TEST_F(StateMacineStateUnitTest, no_transition)
 	EXPECT_TRUE(e->isHandled);
 }
 
-TEST_F(StateMacineStateUnitTest, no_transition_error)
+TEST_F(StateMacineUnitTest, no_transition_error)
 {
 	EXPECT_CALL(*currentState, handleEvent(e.get(), currentState, _))
 		.WillOnce(Return(E_NOTIMPL));
@@ -71,7 +71,7 @@ TEST_F(StateMacineStateUnitTest, no_transition_error)
 	EXPECT_TRUE(e->isHandled);
 }
 
-TEST_F(StateMacineStateUnitTest, transition)
+TEST_F(StateMacineUnitTest, transition)
 {
 	MockState* nextState = new MockState(MockObjectId::NEXT_STATE);
 	EXPECT_CALL(*currentState, handleEvent(e.get(), currentState, _))
@@ -89,7 +89,7 @@ TEST_F(StateMacineStateUnitTest, transition)
 	EXPECT_TRUE(e->isHandled);
 }
 
-TEST_F(StateMacineStateUnitTest, transition_error)
+TEST_F(StateMacineUnitTest, transition_error)
 {
 	MockState* nextState = new MockState(MockObjectId::NEXT_STATE);
 	EXPECT_CALL(*currentState, handleEvent(e.get(), currentState, _))
@@ -113,11 +113,11 @@ TEST_F(StateMacineStateUnitTest, transition_error)
 	EXPECT_TRUE(e->isHandled);
 }
 
-class StateMacineSubStateUnitTest : public StateMacineStateUnitTest
+class StateMacineSubStateUnitTest : public StateMacineUnitTest
 {
 public:
 	void SetUp() {
-		StateMacineStateUnitTest::SetUp();
+		StateMacineUnitTest::SetUp();
 		masterState1 = new MockState(MockObjectId::MASTER_STATE1);
 		masterState2 = new MockState(MockObjectId::MASTER_STATE2);
 		currentState->masterState().reset(masterState1);
@@ -125,7 +125,7 @@ public:
 		otherState = new MockState(MockObjectId::OTHER_STATE);
 	}
 	void TearDown() {
-		StateMacineStateUnitTest::TearDown();
+		StateMacineUnitTest::TearDown();
 	}
 
 	MockState* masterState1;	// Master of sub state
@@ -173,7 +173,7 @@ TEST_F(StateMacineSubStateUnitTest, back_to_parent2)
 	EXPECT_TRUE(e->isHandled);
 }
 
-TEST_F(StateMacineSubStateUnitTest, all_events_ignored)
+TEST_F(StateMacineSubStateUnitTest, event_ignored)
 {
 	EXPECT_CALL(*currentState, handleEvent(e.get(), currentState, _))
 		.WillOnce(Return(currentState->eventIsIgnored()));

@@ -21,10 +21,12 @@ public:
 	template<class T = Context>
 	T* getContext() const { return dynamic_cast<T*>(context); }
 
-	// true if the event is handled by the methods of State class.
-	// State machine doesn't depend on this value, it just sets this value.
+	// true if the event is handled by the State::handleEvent().
 	// This value is set to true by state machine,
-	// when State::handleEvent() returns other than S_EVENT_IGNORED.
+	// when State::handleEvent() returns other than S_EVENT_IGNORED or state transition occurs.
+	// State class could set this to true in order to
+	// suppress calling it's handleIgnoredEvent() and handleEvent() of master state.
+	// But setting false affect nothing.
 	bool isHandled;
 
 private:
