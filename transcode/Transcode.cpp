@@ -17,7 +17,6 @@
 
 
 #include "Transcode.h"
-#include <map>
 #include <Shlwapi.h>
 #include <locale>
 
@@ -25,8 +24,10 @@
 
 using FileType = std::pair<std::wstring, CTranscoder::FileTypeAttr>;
 static FileType fileTypeData[] = {
-	{ L".wmv",{ L"Windows Media", MFAudioFormat_WMAudioV9, MFVideoFormat_WMV3, MFTranscodeContainerType_ASF } },
-	{ L".mp4",{ L"MP4", MFAudioFormat_AAC, MFVideoFormat_H264, MFTranscodeContainerType_MPEG4 } },
+	{ L".wmv",{ L"Windows Media Video", MFAudioFormat_WMAudioV9, MFVideoFormat_WMV3, MFTranscodeContainerType_ASF } },
+	{ L".wma",{ L"Windows Media Audio", MFAudioFormat_WMAudioV9, GUID_NULL, MFTranscodeContainerType_ASF } },
+	{ L".mp4",{ L"MP4(H.264 video and AAC audio)", MFAudioFormat_AAC, MFVideoFormat_H264, MFTranscodeContainerType_MPEG4 } },
+	{ L".aac",{ L"Advanced Audio Coding", MFAudioFormat_AAC, GUID_NULL, MFTranscodeContainerType_MPEG4 } },
 };
 
 HRESULT CreateMediaSource(const WCHAR *sURL, IMFMediaSource** ppMediaSource);
@@ -541,7 +542,8 @@ HRESULT CreateMediaSource(
     return hr;
 }
 
-static std::map<std::wstring, CTranscoder::FileTypeAttr> fileTypes(fileTypeData, &fileTypeData[ARRAYSIZE(fileTypeData)]);
+/*static*/ std::map<std::wstring, CTranscoder::FileTypeAttr> const
+CTranscoder::fileTypes(fileTypeData, &fileTypeData[ARRAYSIZE(fileTypeData)]);
 
 HRESULT CTranscoder::getFileType(LPCWSTR fileName, const FileTypeAttr** ppAttr)
 {

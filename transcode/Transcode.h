@@ -23,6 +23,7 @@
 #include <assert.h>
 #include <mfapi.h>
 #include <mfidl.h>
+#include <map>
 
 template <class T> void SafeRelease(T **ppT)
 {
@@ -53,6 +54,7 @@ public:
 		GUID containerType;
 	};
 
+	static const std::map<std::wstring, CTranscoder::FileTypeAttr> fileTypes;
 	HRESULT getFileType(LPCWSTR fileName, const FileTypeAttr** ppAttr);
 
 private:

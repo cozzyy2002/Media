@@ -22,7 +22,10 @@ int wmain(int argc, wchar_t* argv[])
 
     if (argc != 3)
     {
-        wprintf_s(L"Usage: %s input_file output_file\n", argv[0]);
+        wprintf_s(L"Usage: %s input_file output_file\nAvailable output file types are:\n", argv[0]);
+		for each (auto& t in CTranscoder::fileTypes) {
+			wprintf_s(L"  %s: %s\n", t.first.c_str(), t.second.description);
+		}
         return 0;
     }
 
@@ -54,7 +57,7 @@ int wmain(int argc, wchar_t* argv[])
 			hr = transcoder.OpenFile(sInputFile);
 		}
 
-        if (SUCCEEDED(hr))
+        if (SUCCEEDED(hr) && !IsEqualGUID(pAttr->audioSubType, GUID_NULL))
         {
             wprintf_s(L"Opened file: %s.\n", sInputFile);
 
@@ -62,7 +65,7 @@ int wmain(int argc, wchar_t* argv[])
             hr = transcoder.ConfigureAudioOutput(pAttr->audioSubType);
         }
 
-        if (SUCCEEDED(hr))
+        if (SUCCEEDED(hr) && !IsEqualGUID(pAttr->videoSubType, GUID_NULL))
         {
             hr = transcoder.ConfigureVideoOutput(pAttr->videoSubType);
         }
