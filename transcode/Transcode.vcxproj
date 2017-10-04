@@ -181,12 +181,14 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="MediaSource.cpp" />
     <ClCompile Include="Transcode.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="readme.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="MediaSource.h" />
     <ClInclude Include="Transcode.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

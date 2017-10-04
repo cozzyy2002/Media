@@ -17,6 +17,7 @@
 
 
 #include "Transcode.h"
+#include "MediaSource.h"
 #include <Shlwapi.h>
 #include <locale>
 
@@ -81,7 +82,11 @@ HRESULT CTranscoder::OpenFile(const WCHAR *sURL)
     HRESULT hr = S_OK;
 
     // Create the media source.
-    hr = CreateMediaSource(sURL, &m_pSource);
+	IMFMediaSource* pSource;
+    hr = CreateMediaSource(sURL, &pSource);
+	if(SUCCEEDED(hr)) {
+		m_pSource = new CMediaSource(pSource);
+	}
 
     //Create the media session.
     if (SUCCEEDED(hr))
