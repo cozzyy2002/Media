@@ -249,3 +249,5 @@ ModelManifest.xml
 /DmoEffector/DmoEffector.mc.rc
 /DmoEffector/DmoEffector.mc.h
 /Media_cacc816.patch
+*.mp4
+*.wmv

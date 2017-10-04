@@ -41,10 +41,19 @@ public:
     virtual ~CTranscoder();
 
     HRESULT OpenFile(const WCHAR *sURL);
-    HRESULT ConfigureAudioOutput();
-    HRESULT ConfigureVideoOutput();
-    HRESULT ConfigureContainer();
+    HRESULT ConfigureAudioOutput(REFGUID subType);
+    HRESULT ConfigureVideoOutput(REFGUID subType);
+    HRESULT ConfigureContainer(REFGUID containerType);
     HRESULT EncodeToFile(const WCHAR *sURL);
+
+	struct FileTypeAttr {
+		LPCWSTR description;
+		GUID audioSubType;
+		GUID videoSubType;
+		GUID containerType;
+	};
+
+	HRESULT getFileType(LPCWSTR fileName, const FileTypeAttr** ppAttr);
 
 private:
 

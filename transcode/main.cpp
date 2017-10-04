@@ -42,25 +42,34 @@ int wmain(int argc, wchar_t* argv[])
     {
         CTranscoder transcoder;
 
-        // Create a media source for the input file.
-        hr = transcoder.OpenFile(sInputFile);
+		// Get encoder attributes from output file extension.
+		const CTranscoder::FileTypeAttr* pAttr;
+		hr = transcoder.getFileType(sOutputFile, &pAttr);
+		if(SUCCEEDED(hr)) {
+			wprintf_s(L"Transcoding to %s\n", pAttr->description);
+		}
+
+		if(SUCCEEDED(hr)) {
+			// Create a media source for the input file.
+			hr = transcoder.OpenFile(sInputFile);
+		}
 
         if (SUCCEEDED(hr))
         {
             wprintf_s(L"Opened file: %s.\n", sInputFile);
 
             //Configure the profile and build a topology.
-            hr = transcoder.ConfigureAudioOutput();
+            hr = transcoder.ConfigureAudioOutput(pAttr->audioSubType);
         }
 
         if (SUCCEEDED(hr))
         {
-            hr = transcoder.ConfigureVideoOutput();
+            hr = transcoder.ConfigureVideoOutput(pAttr->videoSubType);
         }
     
         if (SUCCEEDED(hr))
         {
-            hr = transcoder.ConfigureContainer();
+            hr = transcoder.ConfigureContainer(pAttr->containerType);
         }
 
         //Transcode and generate the output file.

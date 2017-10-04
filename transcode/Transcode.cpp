@@ -17,6 +17,17 @@
 
 
 #include "Transcode.h"
+#include <map>
+#include <Shlwapi.h>
+#include <locale>
+
+#pragma comment(lib, "Shlwapi.lib")
+
+using FileType = std::pair<std::wstring, CTranscoder::FileTypeAttr>;
+static FileType fileTypeData[] = {
+	{ L".wmv",{ L"Windows Media", MFAudioFormat_WMAudioV9, MFVideoFormat_WMV3, MFTranscodeContainerType_ASF } },
+	{ L".mp4",{ L"MP4", MFAudioFormat_AAC, MFVideoFormat_H264, MFTranscodeContainerType_MPEG4 } },
+};
 
 HRESULT CreateMediaSource(const WCHAR *sURL, IMFMediaSource** ppMediaSource);
 
@@ -95,7 +106,7 @@ HRESULT CTranscoder::OpenFile(const WCHAR *sURL)
 //
 //-------------------------------------------------------------------
 
-HRESULT CTranscoder::ConfigureAudioOutput()
+HRESULT CTranscoder::ConfigureAudioOutput(REFGUID subType)
 {
     assert (m_pProfile);
 
@@ -111,7 +122,7 @@ HRESULT CTranscoder::ConfigureAudioOutput()
     // audio encoder.
 
     hr = MFTranscodeGetAudioOutputAvailableTypes(
-        MFAudioFormat_WMAudioV9, 
+        subType, 
         MFT_ENUM_FLAG_ALL, 
         NULL, 
         &pAvailableTypes
@@ -157,7 +168,7 @@ HRESULT CTranscoder::ConfigureAudioOutput()
 
     if (SUCCEEDED(hr))
     {
-        hr = pAudioAttrs->SetGUID(MF_MT_SUBTYPE, MFAudioFormat_WMAudioV9);
+        hr = pAudioAttrs->SetGUID(MF_MT_SUBTYPE, subType);
     }
     
     // Set the attribute store on the transcode profile.
@@ -183,7 +194,7 @@ HRESULT CTranscoder::ConfigureAudioOutput()
 //
 //-------------------------------------------------------------------
 
-HRESULT CTranscoder::ConfigureVideoOutput()
+HRESULT CTranscoder::ConfigureVideoOutput(REFGUID subType)
 {
     assert (m_pProfile);
 
@@ -202,7 +213,7 @@ HRESULT CTranscoder::ConfigureVideoOutput()
     // Set the encoder to be Windows Media video encoder, so that the appropriate MFTs are added to the topology.
     if (SUCCEEDED(hr))
     {
-        hr = pVideoAttrs->SetGUID(MF_MT_SUBTYPE, MFVideoFormat_WMV3);
+        hr = pVideoAttrs->SetGUID(MF_MT_SUBTYPE, subType);
     }
 
     // Set the frame rate.
@@ -251,7 +262,7 @@ HRESULT CTranscoder::ConfigureVideoOutput()
 //  stream settings stored in the transcode profile.
 //-------------------------------------------------------------------
 
-HRESULT CTranscoder::ConfigureContainer()
+HRESULT CTranscoder::ConfigureContainer(REFGUID containerType)
 {
     assert (m_pProfile);
     
@@ -267,7 +278,7 @@ HRESULT CTranscoder::ConfigureContainer()
     {
         hr = pContainerAttrs->SetGUID(
             MF_TRANSCODE_CONTAINERTYPE, 
-            MFTranscodeContainerType_ASF
+            containerType
             );
     }
 
@@ -528,4 +539,22 @@ HRESULT CreateMediaSource(
     SafeRelease(&pSourceResolver);
     SafeRelease(&pUnkSource);
     return hr;
+}
+
+static std::map<std::wstring, CTranscoder::FileTypeAttr> fileTypes(fileTypeData, &fileTypeData[ARRAYSIZE(fileTypeData)]);
+
+HRESULT CTranscoder::getFileType(LPCWSTR fileName, const FileTypeAttr** ppAttr)
+{
+	std::wstring ext(PathFindExtensionW(fileName));
+	std::locale loc;
+	for(auto it = ext.begin(); it != ext.end(); it++) {
+		*it = std::tolower<std::wstring::value_type>(*it, loc);
+	}
+	auto it(fileTypes.find(ext));
+	if(it != fileTypes.end()) {
+		*ppAttr = &it->second;
+		return S_OK;
+	} else {
+		return E_NOT_SET;
+	}
 }
