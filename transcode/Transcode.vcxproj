@@ -185,6 +185,7 @@
     <ClCompile Include="Transcode.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <Text Include="Memo.txt" />
     <Text Include="readme.txt" />
   </ItemGroup>
   <ItemGroup>

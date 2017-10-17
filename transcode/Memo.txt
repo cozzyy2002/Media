@@ -1,0 +1,5 @@
+CMediaSource::QueryInterface result.
+                                                          WMV source    MP4 source
+{FA993888-4383-415A-A930-DD472A8CF6F7}) IMFGetService   : 0x00000000    0x00000000
+{279A808D-AEC7-40C8-9C6B-A6B492C78A66}) IMFMediaSource  : 0x00000000    0x00000000
+{3C9B2EB9-86D5-4514-A394-F56664F9F0D8}) IMFMediaSourceEx: 0x80004002    0x00000000
