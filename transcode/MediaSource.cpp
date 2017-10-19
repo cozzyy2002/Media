@@ -39,26 +39,19 @@ bool CMediaSource::isInnerProperty(const PROPERTYKEY& key)
 	return false;
 }
 
-template<class I>
-static void swapObject(I** pObj, void** ppv, CMediaSource* pThis)
-{
-	printf_s(__FUNCTION__ "(%s)\n", typeid((I*)*ppv).name());
-	*pObj = (I*)*ppv;
-	*ppv = (I*)pThis;
-}
-
 CMediaSource::CMediaSource(IMFMediaSource * inner)
 	: inner(inner), innerGetService(nullptr), innerPropertyStore(nullptr)
 {
 	auto hr = inner->QueryInterface(IID_PPV_ARGS(&innerGetService));
+	auto cRef = innerGetService->Release();
+	//wprintf_s(__FUNCTIONW__ L"(): this=0x%08p cRef=%d\n", (void*)this, cRef);
+	if(cRef == 0) {
+		wprintf_s(__FUNCTIONW__ L"(): Unexpected: IMFGetService object is released.");
+		innerGetService = nullptr;
+		return;
+	}
 	if(SUCCEEDED(hr)) {
 		hr = innerGetService->GetService(MF_PROPERTY_HANDLER_SERVICE, IID_PPV_ARGS(&innerPropertyStore));
-		auto cRef = innerGetService->Release();
-		//wprintf_s(__FUNCTIONW__ L"(): this=0x%08p cRef=%d\n", (void*)this, cRef);
-		if(cRef == 0) {
-			innerGetService = nullptr;
-			wprintf_s(__FUNCTIONW__ L"(): Unexpected: IMFGetService object is released.");
-		}
 		if(SUCCEEDED(hr)) {
 			// If IPropertyStore is implemented by another object, set the object to CComPtr.
 			if(!isSameObject(inner, innerPropertyStore)) _innerPropertyStore = innerPropertyStore;
