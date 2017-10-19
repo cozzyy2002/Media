@@ -52,6 +52,8 @@ CMediaSource::CMediaSource(IMFMediaSource * inner)
 {
 	auto hr = inner->QueryInterface(IID_PPV_ARGS(&innerGetService));
 	if(SUCCEEDED(hr)) {
+		/*auto cRef =*/ innerGetService->Release();
+		//wprintf_s(__FUNCTIONW__ L"(): this=0x%08p cRef=%d\n", (void*)this, cRef);
 		hr = innerGetService->GetService(MF_PROPERTY_HANDLER_SERVICE, IID_PPV_ARGS(&innerPropertyStore));
 		if(SUCCEEDED(hr)) {
 			// If IPropertyStore is implemented by another object, set the object to CComPtr.
@@ -159,7 +161,7 @@ HRESULT CMediaSource::QueryInterface(REFIID riid, void ** ppvObject)
 ULONG CMediaSource::AddRef(void)
 {
 	auto cRef(inner->AddRef());
-	//wprintf_s(__FUNCTIONW__ L"() : this=0x%08p cRef=%d\n", (void*)this, cRef);
+	//wprintf_s(__FUNCTIONW__ L"(): this=0x%08p cRef=%d\n", (void*)this, cRef);
 	return cRef;
 }
 
