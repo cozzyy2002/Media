@@ -52,9 +52,13 @@ CMediaSource::CMediaSource(IMFMediaSource * inner)
 {
 	auto hr = inner->QueryInterface(IID_PPV_ARGS(&innerGetService));
 	if(SUCCEEDED(hr)) {
-		/*auto cRef =*/ innerGetService->Release();
-		//wprintf_s(__FUNCTIONW__ L"(): this=0x%08p cRef=%d\n", (void*)this, cRef);
 		hr = innerGetService->GetService(MF_PROPERTY_HANDLER_SERVICE, IID_PPV_ARGS(&innerPropertyStore));
+		auto cRef = innerGetService->Release();
+		//wprintf_s(__FUNCTIONW__ L"(): this=0x%08p cRef=%d\n", (void*)this, cRef);
+		if(cRef == 0) {
+			innerGetService = nullptr;
+			wprintf_s(__FUNCTIONW__ L"(): Unexpected: IMFGetService object is released.");
+		}
 		if(SUCCEEDED(hr)) {
 			// If IPropertyStore is implemented by another object, set the object to CComPtr.
 			if(!isSameObject(inner, innerPropertyStore)) _innerPropertyStore = innerPropertyStore;
