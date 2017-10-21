@@ -20,6 +20,7 @@
 #include "MediaSource.h"
 #include <Shlwapi.h>
 #include <locale>
+#include <memory>
 
 #pragma comment(lib, "Shlwapi.lib")
 
@@ -395,6 +396,10 @@ HRESULT CTranscoder::Transcode()
 
         switch (meType)
         {
+		case MESessionTopologyStatus:
+			onSessionTopologyStatus(pEvent);
+			break;
+
         case MESessionTopologySet:
             hr = Start();
             if (SUCCEEDED(hr))
@@ -430,6 +435,84 @@ HRESULT CTranscoder::Transcode()
 
     SafeRelease(&pEvent);
     return hr;
+}
+
+struct CSafePropVariant {
+	CSafePropVariant() { PropVariantInit(&var); }
+	~CSafePropVariant() { PropVariantClear(&var); }
+	PROPVARIANT* operator&() { return &var; }
+	PROPVARIANT* operator->() { return &var; }
+	PROPVARIANT var;
+};
+
+#define HR_ASSERT_OK(exp) \
+	do { HRESULT hr = checkHResult(exp, #exp, __FILE__, __LINE__); if(FAILED(hr)) return hr; } while(false)
+#define HR_ASSERT(exp, hr) \
+	if(!(exp)) { checkHResult(hr, #exp, __FILE__, __LINE__); return hr; }
+
+static HRESULT checkHResult(HRESULT hr, const char* exp, const char* file, int line)
+{
+	if(FAILED(hr)) {
+		printf_s("%s faild. error=0x%08x, at:\n%s(%d)\n", exp, hr, file, line);
+	}
+	return hr;
+}
+
+HRESULT CTranscoder::onSessionTopologyStatus(IMFMediaEvent * e)
+{
+	// On SessionTopologyStatus event, event value is IMFTopology object.
+	CSafePropVariant var;
+	HR_ASSERT_OK(e->GetValue(&var));
+	HR_ASSERT(var->vt == VT_UNKNOWN, E_UNEXPECTED);
+	HR_ASSERT(var->punkVal, E_UNEXPECTED);
+	CComPtr<IMFTopology> topology;
+	HR_ASSERT_OK(var->punkVal->QueryInterface(&topology));
+
+	// Status attribute specifies the new status of the topology.
+	UINT32 status;
+	HR_ASSERT_OK(e->GetUINT32(MF_EVENT_TOPOLOGY_STATUS, &status));
+	switch(status) {
+	case MF_TOPOSTATUS_READY:
+		dumpTopology(topology);
+		break;
+	default:
+		break;
+	}
+	return S_OK;
+}
+
+HRESULT CTranscoder::dumpTopology(IMFTopology * topology)
+{
+	WORD nodeCount;
+	HR_ASSERT_OK(topology->GetNodeCount(&nodeCount));
+	wprintf_s(__FUNCTIONW__ L": Node count=%d\n", nodeCount);
+	for(WORD i = 0; i < nodeCount; i++) {
+		std::wstring name;
+		std::wstring strType;
+		CComPtr<IMFTopologyNode> node;
+		HR_ASSERT_OK(topology->GetNode(i, &node));
+		MF_TOPOLOGY_TYPE type;
+		HR_ASSERT_OK(node->GetNodeType(&type));
+		switch(type) {
+		case MF_TOPOLOGY_SOURCESTREAM_NODE:
+			strType = L"Source stream";
+			break;
+		case MF_TOPOLOGY_TRANSFORM_NODE:
+			{
+				strType = L"Transform";
+				CComPtr<IUnknown> unk;
+				HR_ASSERT_OK(node->GetObject(&unk));
+				CComPtr<IMFTransform> transform;
+				HR_ASSERT_OK(unk->QueryInterface(&transform));
+				name = L"Transform";
+			}
+			break;
+		}
+		if(!strType.empty()) {
+			wprintf_s(L"  %2d: type=%d(%s): %s\n", i, type, strType.c_str(), name.c_str());
+		}
+	}
+	return S_OK;
 }
 
 

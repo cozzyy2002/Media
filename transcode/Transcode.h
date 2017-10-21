@@ -62,6 +62,8 @@ private:
     HRESULT Shutdown();
     HRESULT Transcode();
     HRESULT Start();
+	HRESULT onSessionTopologyStatus(IMFMediaEvent* e);
+	HRESULT dumpTopology(IMFTopology* topology);
 
     IMFMediaSession*        m_pSession;
     IMFMediaSource*         m_pSource;

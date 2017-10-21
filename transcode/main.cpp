@@ -22,8 +22,10 @@ int wmain(int argc, wchar_t* argv[])
 
     if (argc != 3)
     {
-        wprintf_s(L"Usage: %s input_file output_file\nAvailable output file types are:\n", argv[0]);
-		for each (auto& t in CTranscoder::fileTypes) {
+        wprintf_s(
+			L"Usage: %s input_file output_file\n"
+			L"Available output file types are:\n", argv[0]);
+		for(const auto& t : CTranscoder::fileTypes) {
 			wprintf_s(L"  %s: %s\n", t.first.c_str(), t.second.description);
 		}
         return 0;
