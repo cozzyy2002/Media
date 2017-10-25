@@ -9,6 +9,7 @@
 #include <mftransform.h>
 #include <dmoreg.h>
 #include <medparam.h>
+#include <propvarutil.h>
 
 #include <log4cplus/configurator.h>
 
@@ -50,6 +51,17 @@ static const GuidEntry g_mftCategories[] = {
 	GUID_ENTRY(MFT_CATEGORY_VIDEO_PROCESSOR),
 };
 
+class CPropVariant
+{
+public:
+	CPropVariant() { PropVariantInit(&var); }
+	~CPropVariant() { PropVariantClear(&var); }
+	PROPVARIANT* operator&() { return &var; }
+	operator const PROPVARIANT&() const { return var; }
+protected:
+	PROPVARIANT var;
+};
+
 HRESULT enumMFTransforms()
 {
 	std::wcout << "\n==== Enumerating Media Foundation transforms(MFTs) in the regstry. ====\n";
@@ -65,9 +77,22 @@ HRESULT enumMFTransforms()
 
 		for (UINT32 n = 0; n < count; n++) {
 			CComHeapPtr<WCHAR> name;
-			if (SUCCEEDED(MFTGetInfo(pClsId[n], &name, NULL, NULL, NULL, NULL, NULL))) {
+			CComPtr<IMFAttributes> attr;
+			if (SUCCEEDED(MFTGetInfo(pClsId[n], &name, NULL, NULL, NULL, NULL, &attr))) {
 				CComBSTR strGuid(pClsId[n]);
 				std::wcout << L"  " << n << L": " << (LPCWSTR)strGuid << L":" << (LPCWSTR)name << std::endl;
+				UINT32 attrCount;
+				attr->GetCount(&attrCount);
+				std::wcout << L"      " << attrCount << L" attribute(s)" << std::endl;
+				for(UINT32 m = 0; m < attrCount; m++) {
+					GUID key;
+					CPropVariant var;
+					attr->GetItemByIndex(m, &key, &var);
+					CComBSTR strKey(key);
+					CComHeapPtr<WCHAR> strVar;
+					HRESULT hr = PropVariantToStringAlloc(var, &strVar);
+					std::wcerr << L"        " << m << L": " << (LPCWSTR)strKey << L"=" << (SUCCEEDED(hr) ? strVar : L"????") << std::endl;
+				}
 			}
 		}
 	}
