@@ -21,8 +21,10 @@
 #include <Shlwapi.h>
 #include <locale>
 #include <memory>
+#include <propvarutil.h>
 
 #pragma comment(lib, "Shlwapi.lib")
+#pragma comment(lib, "Propsys.lib")
 
 using FileType = std::pair<std::wstring, CTranscoder::FileTypeAttr>;
 static FileType fileTypeData[] = {
@@ -437,11 +439,13 @@ HRESULT CTranscoder::Transcode()
     return hr;
 }
 
+// Safe pointer for PROPVARIANT.
 struct CSafePropVariant {
 	CSafePropVariant() { PropVariantInit(&var); }
 	~CSafePropVariant() { PropVariantClear(&var); }
 	PROPVARIANT* operator&() { return &var; }
 	PROPVARIANT* operator->() { return &var; }
+	operator PROPVARIANT&() { return var; }
 	PROPVARIANT var;
 };
 
@@ -493,9 +497,14 @@ HRESULT CTranscoder::dumpTopology(IMFTopology * topology)
 		HR_ASSERT_OK(topology->GetNode(i, &node));
 		MF_TOPOLOGY_TYPE type;
 		HR_ASSERT_OK(node->GetNodeType(&type));
+		wprintf_s(L"Node %d: type=%d\n", i, (int)type);
+		CComPtr<IMFAttributes> attr;
 		switch(type) {
 		case MF_TOPOLOGY_SOURCESTREAM_NODE:
 			strType = L"Source stream";
+			break;
+		case MF_TOPOLOGY_OUTPUT_NODE:
+			strType = L"Output";
 			break;
 		case MF_TOPOLOGY_TRANSFORM_NODE:
 			{
@@ -504,12 +513,26 @@ HRESULT CTranscoder::dumpTopology(IMFTopology * topology)
 				HR_ASSERT_OK(node->GetObject(&unk));
 				CComPtr<IMFTransform> transform;
 				HR_ASSERT_OK(unk->QueryInterface(&transform));
-				name = L"Transform";
+				HR_ASSERT_OK(transform->GetAttributes(&attr));
 			}
 			break;
 		}
 		if(!strType.empty()) {
 			wprintf_s(L"  %2d: type=%d(%s): %s\n", i, type, strType.c_str(), name.c_str());
+		}
+		if(attr) {
+			UINT32 attrCount;
+			HR_ASSERT_OK(attr->GetCount(&attrCount));
+			wprintf_s(L"    attributes: count=%d\n", attrCount);
+			for(UINT32 j = 0; j < attrCount; j++) {
+				GUID key;
+				CSafePropVariant var;
+				HR_ASSERT_OK(attr->GetItemByIndex(j, &key, &var));
+				CComHeapPtr<WCHAR> strVar;
+				HR_ASSERT_OK(PropVariantToStringAlloc(var, &strVar));
+				CComBSTR strKey(key);
+				wprintf_s(L"      %s=%s\n", (LPCWSTR)strKey, (LPCWSTR)strVar);
+			}
 		}
 	}
 	return S_OK;
