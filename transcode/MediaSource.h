@@ -1,4 +1,5 @@
 #pragma once
+#include "Transcode.h"
 #include <mfidl.h>
 #include <Shlwapi.h>
 #include <vector>

@@ -22,6 +22,7 @@
 #include <locale>
 #include <memory>
 #include <propvarutil.h>
+#include <mftransform.h>
 
 #pragma comment(lib, "Shlwapi.lib")
 #pragma comment(lib, "Propsys.lib")
@@ -32,6 +33,52 @@ static FileType fileTypeData[] = {
 	{ L".wma",{ L"Windows Media Audio", MFAudioFormat_WMAudioV9, GUID_NULL, MFTranscodeContainerType_ASF } },
 	{ L".mp4",{ L"MP4(H.264 video and AAC audio)", MFAudioFormat_AAC, MFVideoFormat_H264, MFTranscodeContainerType_MPEG4 } },
 	{ L".aac",{ L"Advanced Audio Coding", MFAudioFormat_AAC, GUID_NULL, MFTranscodeContainerType_MPEG4 } },
+};
+
+template<typename T>
+struct ValueName
+{
+	T value;
+	LPCWSTR str;
+};
+
+template<typename T>
+LPCWSTR valueToName(const ValueName<T>* valueNames, typename T value);
+
+#define VALUE_NAME_ENT(v) { v, L#v }
+
+static ValueName<REFGUID> g_AttributeValueNames[] = {
+	VALUE_NAME_ENT(MF_ACTIVATE_MFT_LOCKED),
+	VALUE_NAME_ENT(MF_SA_D3D_AWARE),
+	VALUE_NAME_ENT(MF_TRANSFORM_ASYNC),
+	VALUE_NAME_ENT(MF_TRANSFORM_ASYNC_UNLOCK),
+	VALUE_NAME_ENT(MF_TRANSFORM_CATEGORY_Attribute),
+	VALUE_NAME_ENT(MF_TRANSFORM_FLAGS_Attribute),
+	VALUE_NAME_ENT(MFT_CODEC_MERIT_Attribute),
+	VALUE_NAME_ENT(MFT_CONNECTED_STREAM_ATTRIBUTE),
+	VALUE_NAME_ENT(MFT_CONNECTED_TO_HW_STREAM),
+	VALUE_NAME_ENT(MFT_ENUM_HARDWARE_URL_Attribute),
+	VALUE_NAME_ENT(MFT_ENUM_TRANSCODE_ONLY_ATTRIBUTE),
+	VALUE_NAME_ENT(MFT_FIELDOFUSE_UNLOCK_Attribute),
+	VALUE_NAME_ENT(MFT_FRIENDLY_NAME_Attribute),
+	VALUE_NAME_ENT(MFT_INPUT_TYPES_Attributes),
+	VALUE_NAME_ENT(MFT_OUTPUT_TYPES_Attributes),
+	VALUE_NAME_ENT(MFT_PREFERRED_ENCODER_PROFILE),
+	VALUE_NAME_ENT(MFT_PREFERRED_OUTPUTTYPE_Attribute),
+	VALUE_NAME_ENT(MFT_PREFERRED_OUTPUTTYPE_Attribute),
+	VALUE_NAME_ENT(MFT_PROCESS_LOCAL_Attribute),
+	VALUE_NAME_ENT(MFT_SUPPORT_DYNAMIC_FORMAT_CHANGE),
+	VALUE_NAME_ENT(MFT_TRANSFORM_CLSID_Attribute),
+#pragma region	Attributes supported Windows 8.1 or later.
+	VALUE_NAME_ENT(MFT_DECODER_EXPOSE_OUTPUT_TYPES_IN_NATIVE_ORDER),
+	VALUE_NAME_ENT(MFT_DECODER_FINAL_VIDEO_RESOLUTION_HINT),
+	VALUE_NAME_ENT(MFT_ENCODER_SUPPORTS_CONFIG_EVENT),
+	VALUE_NAME_ENT(MFT_ENUM_ADAPTER_LUID),
+	VALUE_NAME_ENT(MFT_ENUM_HARDWARE_VENDOR_ID_Attribute),
+	VALUE_NAME_ENT(MFT_REMUX_MARK_I_PICTURE_AS_CLEAN_POINT),
+	VALUE_NAME_ENT(MFT_SUPPORT_3DVIDEO),
+#pragma endrigion
+	{ GUID_NULL, nullptr }
 };
 
 HRESULT CreateMediaSource(const WCHAR *sURL, IMFMediaSource** ppMediaSource);
@@ -541,7 +588,8 @@ HRESULT CTranscoder::dumpTopology(IMFTopology * topology)
 				CComHeapPtr<WCHAR> strVar;
 				HR_ASSERT_OK(PropVariantToStringAlloc(var, &strVar));
 				CComBSTR strKey(key);
-				wprintf_s(L"      %s=%s\n", (LPCWSTR)strKey, (LPCWSTR)strVar);
+				LPCWSTR strKeyName = valueToName<REFGUID>(g_AttributeValueNames, key);
+				wprintf_s(L"      %s:%s=%s\n", (LPCWSTR)strKey, strKeyName, (LPCWSTR)strVar);
 			}
 		}
 	}
@@ -680,4 +728,14 @@ HRESULT CTranscoder::getFileType(LPCWSTR fileName, const FileTypeAttr** ppAttr)
 	} else {
 		return E_NOT_SET;
 	}
+}
+
+template<typename T>
+LPCWSTR valueToName(const ValueName<T>* valueNames, typename T value)
+{
+	while(valueNames->str) {
+		if(valueNames->value == value) return valueNames->str;
+		valueNames++;
+	}
+	return L"<Unknown>";
 }

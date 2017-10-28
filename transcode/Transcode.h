@@ -17,7 +17,10 @@
 
 #pragma once
 
-#define WINVER _WIN32_WINNT_WIN7
+// Specify target platform version in project property.
+//#define WINVER _WIN32_WINNT_WIN7
+//#define _WIN32_WINNT _WIN32_WINNT_WIN8
+#include <SDKDDKVer.h>
 
 #include <stdio.h>
 #include <assert.h>
