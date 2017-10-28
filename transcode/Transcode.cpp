@@ -449,10 +449,14 @@ struct CSafePropVariant {
 	PROPVARIANT var;
 };
 
+#define HR_EXPECT_OK(exp) \
+	checkHResult(exp, #exp, __FILE__, __LINE__)
+#define HR_EXPECT(exp, hr) \
+	HR_EXPECT_OK((exp) ? S_OK : hr)
 #define HR_ASSERT_OK(exp) \
-	do { HRESULT hr = checkHResult(exp, #exp, __FILE__, __LINE__); if(FAILED(hr)) return hr; } while(false)
+	do { HRESULT hr = HR_EXPECT_OK(exp); if(FAILED(hr)) return hr; } while(false)
 #define HR_ASSERT(exp, hr) \
-	if(!(exp)) { checkHResult(hr, #exp, __FILE__, __LINE__); return hr; }
+	HR_ASSERT_OK((exp) ? S_OK : hr)
 
 static HRESULT checkHResult(HRESULT hr, const char* exp, const char* file, int line)
 {
@@ -498,19 +502,25 @@ HRESULT CTranscoder::dumpTopology(IMFTopology * topology)
 		MF_TOPOLOGY_TYPE type;
 		HR_ASSERT_OK(node->GetNodeType(&type));
 		wprintf_s(L"Node %d: type=%d\n", i, (int)type);
+		CComPtr<IUnknown> unk;
+		if(FAILED(HR_EXPECT_OK(node->GetObject(&unk)))) continue;
 		CComPtr<IMFAttributes> attr;
 		switch(type) {
 		case MF_TOPOLOGY_SOURCESTREAM_NODE:
 			strType = L"Source stream";
+			HR_EXPECT_OK(unk->QueryInterface(&attr));
 			break;
 		case MF_TOPOLOGY_OUTPUT_NODE:
 			strType = L"Output";
+			HR_EXPECT_OK(unk->QueryInterface(&attr));
+			break;
+		case MF_TOPOLOGY_TEE_NODE:
+			strType = L"Tee";
+			HR_EXPECT_OK(unk->QueryInterface(&attr));
 			break;
 		case MF_TOPOLOGY_TRANSFORM_NODE:
+			strType = L"Transform";
 			{
-				strType = L"Transform";
-				CComPtr<IUnknown> unk;
-				HR_ASSERT_OK(node->GetObject(&unk));
 				CComPtr<IMFTransform> transform;
 				HR_ASSERT_OK(unk->QueryInterface(&transform));
 				HR_ASSERT_OK(transform->GetAttributes(&attr));
