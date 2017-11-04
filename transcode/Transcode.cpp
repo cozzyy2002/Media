@@ -514,7 +514,7 @@ struct CSafePropVariant {
 #define HR_EXPECT(exp, hr) \
 	HR_EXPECT_OK((exp) ? S_OK : hr)
 #define HR_ASSERT_OK(exp) \
-	do { HRESULT hr = HR_EXPECT_OK(exp); if(FAILED(hr)) return hr; } while(false)
+	do { HRESULT _hr = HR_EXPECT_OK(exp); if(FAILED(_hr)) return _hr; } while(false)
 #define HR_ASSERT(exp, hr) \
 	HR_ASSERT_OK((exp) ? S_OK : hr)
 
@@ -551,6 +551,7 @@ HRESULT CTranscoder::onSessionTopologyStatus(IMFMediaEvent * e)
 
 HRESULT CTranscoder::dumpTopology(IMFTopology * topology)
 {
+	HRESULT hr;
 	WORD nodeCount;
 	HR_ASSERT_OK(topology->GetNodeCount(&nodeCount));
 	wprintf_s(__FUNCTIONW__ L": Node count=%d\n", nodeCount);
@@ -563,27 +564,33 @@ HRESULT CTranscoder::dumpTopology(IMFTopology * topology)
 		HR_ASSERT_OK(node->GetNodeType(&type));
 		wprintf_s(L"Node %d: type=%d\n", i, (int)type);
 		CComPtr<IUnknown> unk;
-		if(FAILED(HR_EXPECT_OK(node->GetObject(&unk)))) continue;
+		if(FAILED(hr = node->GetObject(&unk))) {
+			wprintf_s(L"  IMFTopologyNode::GetObject() failed. error=0x%x\n", hr);
+			continue;
+		}
+		LPCWSTR error = L"IUnknown::QueryInterface() failed.";
 		CComPtr<IMFAttributes> attr;
 		switch(type) {
 		case MF_TOPOLOGY_SOURCESTREAM_NODE:
 			strType = L"Source stream";
-			HR_EXPECT_OK(unk->QueryInterface(&attr));
+			hr = unk->QueryInterface(&attr);
 			break;
 		case MF_TOPOLOGY_OUTPUT_NODE:
 			strType = L"Output";
-			HR_EXPECT_OK(unk->QueryInterface(&attr));
+			hr = unk->QueryInterface(&attr);
 			break;
 		case MF_TOPOLOGY_TEE_NODE:
 			strType = L"Tee";
-			HR_EXPECT_OK(unk->QueryInterface(&attr));
+			hr = unk->QueryInterface(&attr);
 			break;
 		case MF_TOPOLOGY_TRANSFORM_NODE:
 			strType = L"Transform";
 			{
 				CComPtr<IMFTransform> transform;
-				HR_ASSERT_OK(unk->QueryInterface(&transform));
-				HR_ASSERT_OK(transform->GetAttributes(&attr));
+				hr = unk->QueryInterface(&transform);
+				if(SUCCEEDED(hr)) {
+					if(FAILED(hr = transform->GetAttributes(&attr))) error = L"IMFAttributes::GetAttributes() failed.";
+				}
 			}
 			break;
 		}
@@ -604,6 +611,8 @@ HRESULT CTranscoder::dumpTopology(IMFTopology * topology)
 				LPCWSTR strKeyName = valueToName<REFGUID>(g_AttributeValueNames, key);
 				wprintf_s(L"      %s:%s=%s\n", (LPCWSTR)strKey, strKeyName, (LPCWSTR)strVar);
 			}
+		} else {
+			wprintf_s(L"  %s error=0x%x\n", error, hr);
 		}
 	}
 	return S_OK;
